@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Theo Dõi Chi Tiêu Cá Nhân</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        input, select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #27ae60;
+        }
+        .action-btn {
+            margin-right: 5px;
+            padding: 5px 10px;
+        }
+        .edit-btn {
+            background-color: #3498db;
+        }
+        .edit-btn:hover {
+            background-color: #2980b9;
+        }
+        .save-btn {
+            background-color: #f1c40f;
+            color: #333;
+        }
+        .save-btn:hover {
+            background-color: #f39c12;
+        }
+        .delete-btn {
+            background-color: #e74c3c;
+        }
+        .delete-btn:hover {
+            background-color: #c0392b;
+        }
+        .cancel-btn {
+            background-color: #95a5a6;
+        }
+        .cancel-btn:hover {
+            background-color: #7f8c8d;
+        }
+        .summary {
+            background-color: #eaf2f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .income {
+            color: green;
+        }
+        .expense {
+            color: red;
+        }
+        .edit-mode input, .edit-mode select {
+            padding: 5px;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bảng Theo Dõi Chi Tiêu Cá Nhân</h1>
+        
+        <div class="input-group">
+            <input type="text" id="description" placeholder="Mô tả khoản thu/chi">
+            <input type="number" id="amount" placeholder="Số tiền (nghìn đồng)">
+            <select id="type">
+                <option value="expense">Chi tiêu (-)</option>
+                <option value="income">Thu nhập (+)</option>
+            </select>
+            <button onclick="addTransaction()">Thêm</button>
+        </div>
+        
+        <table id="transactions">
+            <thead>
+                <tr>
+                    <th>Mô tả</th>
+                    <th>Số tiền (nghìn đồng)</th>
+                    <th>Loại</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        
+        <div class="summary">
+            <h3>Tổng kết</h3>
+            <p><strong>Tổng thu nhập:</strong> <span id="total-income">0</span> nghìn đồng</p>
+            <p><strong>Tổng chi tiêu:</strong> <span id="total-expense">0</span> nghìn đồng</p>
+            <p><strong>Số dư:</strong> <span id="balance">0</span> nghìn đồng</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 15px;">
+            <button onclick="downloadCSV()">Xuất CSV</button>
+            <button onclick="clearAll()">Xóa hết</button>
+        </div>
+    </div>
+
+    <script>
+        // Khởi tạo mảng lưu trữ các giao dịch
+        let transactions = [];
+        
+        // Hàm thêm giao dịch mới
+        function addTransaction() {
+            const description = document.getElementById('description').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const type = document.getElementById('type').value;
+            
+            if (description === '' || isNaN(amount) || amount <= 0) {
+                alert('Vui lòng nhập đầy đủ thông tin hợp lệ!');
+                return;
+            }
+            
+            const transaction = {
+                description,
+                amount,
+                type
+            };
+            
+            transactions.push(transaction);
+            updateTable();
+            calculateSummary();
+            
+            // Xóa nội dung input sau khi thêm
+            document.getElementById('description').value = '';
+            document.getElementById('amount').value = '';
+        }
+        
+        // Hàm cập nhật bảng giao dịch
+        function updateTable() {
+            const tbody = document.querySelector('#transactions tbody');
+            tbody.innerHTML = '';
+            
+            transactions.forEach((transaction, index) => {
+                const row = document.createElement('tr');
+                row.id = `row-${index}`;
+                
+                const descCell = document.createElement('td');
+                descCell.textContent = transaction.description;
+                row.appendChild(descCell);
+                
+                const amountCell = document.createElement('td');
+                let displayAmount = transaction.amount;
+                if (transaction.type === 'income') {
+                    amountCell.textContent = `+${displayAmount}`;
+                    amountCell.className = 'income';
+                } else {
+                    amountCell.textContent = `-${displayAmount}`;
+                    amountCell.className = 'expense';
+                }
+                row.appendChild(amountCell);
+                
+                const typeCell = document.createElement('td');
+                typeCell.textContent = transaction.type === 'income' ? 'Thu nhập' : 'Chi tiêu';
+                row.appendChild(typeCell);
+                
+                const actionCell = document.createElement('td');
+                
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Sửa';
+                editBtn.className = 'action-btn edit-btn';
+                editBtn.onclick = function() {
+                    editTransaction(index);
+                };
+                actionCell.appendChild(editBtn);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Xóa';
+                deleteBtn.className = 'action-btn delete-btn';
+                deleteBtn.onclick = function() {
+                    deleteTransaction(index);
+                };
+                actionCell.appendChild(deleteBtn);
+                
+                row.appendChild(actionCell);
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Hàm chỉnh sửa giao dịch
+        function editTransaction(index) {
+            const transaction = transactions[index];
+            const row = document.getElementById(`row-${index}`);
+            
+            // Chuyển hàng sang chế độ chỉnh sửa
+            row.className = 'edit-mode';
+            
+            // Thay thế nội dung các ô bằng input
+            row.cells[0].innerHTML = `<input type="text" value="${transaction.description}" id="edit-desc-${index}">`;
+            row.cells[1].innerHTML = `<input type="number" value="${transaction.amount}" id="edit-amount-${index}">`;
+            row.cells[2].innerHTML = `
+                <select id="edit-type-${index}">
+                    <option value="expense" ${transaction.type === 'expense' ? 'selected' : ''}>Chi tiêu</option>
+                    <option value="income" ${transaction.type === 'income' ? 'selected' : ''}>Thu nhập</option>
+                </select>
+            `;
+            
+            // Thay thế nút
+            row.cells[3].innerHTML = `
+                <button class="action-btn save-btn" onclick="saveTransaction(${index})">Lưu</button>
+                <button class="action-btn cancel-btn" onclick="cancelEdit(${index})">Hủy</button>
+            `;
+        }
+        
+        // Hàm lưu thay đổi
+        function saveTransaction(index) {
+            const description = document.getElementById(`edit-desc-${index}`).value;
+            const amount = parseFloat(document.getElementById(`edit-amount-${index}`).value);
+            const type = document.getElementById(`edit-type-${index}`).value;
+            
+            if (description === '' || isNaN(amount) || amount <= 0) {
+                alert('Vui lòng nhập đầy đủ thông tin hợp lệ!');
+                return;
+            }
+            
+            transactions[index] = {
+                description,
+                amount,
+                type
+            };
+            
+            updateTable();
+            calculateSummary();
+        }
+        
+        // Hàm hủy chỉnh sửa
+        function cancelEdit(index) {
+            updateTable();
+        }
+        
+        // Hàm xóa giao dịch
+        function deleteTransaction(index) {
+            if (confirm('Bạn có chắc muốn xóa khoản này?')) {
+                transactions.splice(index, 1);
+                updateTable();
+                calculateSummary();
+            }
+        }
+        
+        // Hàm tính tổng kết
+        function calculateSummary() {
+            let totalIncome = 0;
+            let totalExpense = 0;
+            
+            transactions.forEach(transaction => {
+                if (transaction.type === 'income') {
+                    totalIncome += transaction.amount;
+                } else {
+                    totalExpense += transaction.amount;
+                }
+            });
+            
+            const balance = totalIncome - totalExpense;
+            
+            document.getElementById('total-income').textContent = totalIncome.toLocaleString('vi-VN');
+            document.getElementById('total-expense').textContent = totalExpense.toLocaleString('vi-VN');
+            document.getElementById('balance').textContent = balance.toLocaleString('vi-VN');
+        }
+        
+        // Hàm xuất dữ liệu ra file CSV
+        function downloadCSV() {
+            if (transactions.length === 0) {
+                alert('Không có dữ liệu để xuất!');
+                return;
+            }
+            
+            let csvContent = "Mô tả,Số tiền (nghìn đồng),Loại\n";
+            
+            transactions.forEach(transaction => {
+                const amount = transaction.type === 'income' ? transaction.amount : -transaction.amount;
+                const type = transaction.type === 'income' ? 'Thu nhập' : 'Chi tiêu';
+                csvContent += `"${transaction.description}",${amount},"${type}"\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'chi-tieu-ca-nhan.csv');
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Hàm xóa tất cả dữ liệu
+        function clearAll() {
+            if (confirm('Bạn có chắc muốn xóa tất cả dữ liệu?')) {
+                transactions = [];
+                updateTable();
+                calculateSummary();
+            }
+        }
+        
+        // Tự động nhập các khoản chi tiêu từ ví dụ của bạn
+        function preloadExampleData() {
+            // Danh sách các khoản chi tiêu từ ví dụ của bạn
+            const exampleData = [
+                { description: "vé số", amount: 160, type: "expense" },
+                { description: "cf", amount: 552, type: "expense" },
+                { description: "tsua", amount: 444, type: "expense" },
+                { description: "phúc long", amount: 99, type: "expense" },
+                { description: "cơm", amount: 60, type: "expense" },
+                { description: "xôi", amount: 40, type: "expense" },
+                { description: "nước ép", amount: 78, type: "expense" },
+                { description: "bánh mì", amount: 140, type: "expense" },
+                { description: "bún riêu", amount: 40, type: "expense" },
+                { description: "hủ tíu xào", amount: 160, type: "expense" },
+                { description: "bún bò", amount: 100, type: "expense" },
+                { description: "bánh tráng", amount: 15, type: "expense" },
+                { description: "mì", amount: 100, type: "expense" },
+                { description: "pizza", amount: 376, type: "expense" },
+                { description: "lạp xưởng nướng", amount: 30, type: "expense" },
+                { description: "thuốc", amount: 150, type: "expense" },
+                { description: "fshare", amount: 290, type: "expense" },
+                { description: "icloud", amount: 134, type: "expense" },
+                { description: "tiền đt", amount: 500, type: "expense" },
+                { description: "siêu thị", amount: 433, type: "expense" },
+                { description: "đi chợ", amount: 410, type: "expense" },
+                { description: "đổ xăng", amount: 50, type: "expense" },
+                { description: "ck nạp game", amount: 300, type: "expense" },
+                { description: "ck lấy", amount: 2000, type: "expense" },
+                { description: "ck cắt tóc", amount: 150, type: "expense" },
+                { description: "đồ vk", amount: 75, type: "expense" },
+                { description: "vk lấy", amount: 1000, type: "expense" },
+                { description: "tặng quà vk", amount: 1490, type: "expense" },
+                { description: "cúng dường", amount: 150, type: "expense" },
+                { description: "chà bông gà", amount: 150, type: "expense" },
+                { description: "tiền thuê pin", amount: 900, type: "expense" },
+                { description: "tiền chênh lệch", amount: 200, type: "expense" },
+                { description: "đồ chơi cà chua", amount: 882, type: "expense" },
+                { description: "đồ ăn cà chua", amount: 1261, type: "expense" },
+                { description: "đồ mặc cà chua", amount: 176, type: "expense" },
+                { description: "học phí cà chua", amount: 6659, type: "expense" },
+                { description: "tiền nhà vk", amount: 5000, type: "expense" },
+                { description: "nhập hàng dầu thơm", amount: 900, type: "expense" },
+                { description: "ống chiết nước hoa", amount: 214, type: "expense" },
+                { description: "thu nhập", amount: 42401, type: "income" }
+            ];
+            
+            // Thêm dữ liệu vào mảng transactions
+            transactions = exampleData;
+            updateTable();
+            calculateSummary();
+        }
+        
+        // Gọi hàm tải dữ liệu mẫu khi trang web được tải
+        window.onload = function() {
+            preloadExampleData();
+        };
+    </script>
+</body>
+</html>
